@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Dinero+ | Registrar Transacción</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #2e7d32; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 20px; padding: 10px 20px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        a { display: inline-block; margin-top: 20px; color: #1565c0; }
+    </style>
+</head>
+<body>
+    <h1>Mi Dinero+ - Nueva transacción</h1>
+
+    <!-- Formulario HTML con method="post" apuntando al servlet -->
+    <form action="transacciones" method="post">
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo" required>
+            <option value="Ingreso">Ingreso</option>
+            <option value="Gasto">Gasto</option>
+        </select>
+
+        <label for="monto">Monto</label>
+        <input type="number" id="monto" name="monto" step="0.01" min="0" required>
+
+        <label for="fecha">Fecha</label>
+        <input type="date" id="fecha" name="fecha" required>
+
+        <label for="descripcion">Descripción</label>
+        <input type="text" id="descripcion" name="descripcion" required>
+
+        <label for="categoria">Categoría</label>
+        <input type="text" id="categoria" name="categoria" required>
+
+        <button type="submit">Registrar transacción</button>
+    </form>
+
+    <!-- Enlace GET que consulta el listado a través del mismo servlet -->
+    <a href="transacciones">Ver todas las transacciones</a>
+</body>
+</html>
