@@ -1,94 +1,110 @@
-# Módulo de Transacciones – Mi Dinero+ (GA7-220501096-AA2-EV02)
+# GA7-220501096-AA2-EV02: Módulos de software codificados y probados
 
-Evolución de EV01: el mismo módulo de Transacciones ahora expuesto como
-aplicación web con **Servlets** y **JSP**, corriendo en **Apache Tomcat 9**.
+## Descripción de la evidencia
 
-## Estructura
+Este proyecto es la evolución de la evidencia **EV01 (Codificación de módulos
+del software)**. En EV01 se construyó un módulo Java de consola que se
+conectaba a una base de datos MySQL mediante JDBC e implementaba el CRUD
+completo (insertar, consultar, actualizar, eliminar) sobre la entidad
+**Transacción** del proyecto Mi Dinero+.
+
+En esta evidencia (EV02) ese mismo módulo se **expone como una aplicación
+web**, reemplazando el menú de consola por una interfaz accesible desde el
+navegador, usando las tecnologías Java para desarrollo web del lado del
+servidor: **Servlets** y **JSP (JavaServer Pages)**.
+
+## Funcionalidades implementadas
+
+| Requisito de la guía | Cómo se cumple |
+|---|---|
+| Código con formularios HTML y Servlets | `webapp/formulario.html` envía los datos al `TransaccionServlet` |
+| Métodos GET y POST para uso de parámetros | El Servlet implementa `doGet()` (consulta el listado) y `doPost()` (recibe el formulario y registra una transacción) |
+| Elementos de JSP | `resultado.jsp` y `error.jsp` usan scriptlets (`<% %>`), expresiones (`<%= %>`) y directivas de página para mostrar los datos de forma dinámica |
+| Herramientas de versionamiento del código | Proyecto versionado en Git, con un commit por cada funcionalidad, y subido a GitHub |
+
+## Arquitectura y flujo de la aplicación
 
 ```
-src/com/midinero/conexion  -> ConexionBD.java       (igual que EV01)
-src/com/midinero/modelo    -> Transaccion.java      (igual que EV01)
-src/com/midinero/dao       -> TransaccionDAO.java   (igual que EV01)
-src/com/midinero/servlet   -> TransaccionServlet.java (NUEVO: doGet + doPost)
+Usuario (navegador)
+     |
+     v
+formulario.html --- POST (tipo, monto, fecha, descripcion, categoria) ---+
+     |                                                                   v
+     |                                                  TransaccionServlet (doPost)
+     |                                                                   |
+     |                                                TransaccionDAO.insertarTransaccion()
+     |                                                                   |
+     |                                                          MySQL (via JDBC)
+     |                                                                   |
+     |                                                  redirect -> /transacciones (GET)
+     |                                                                   |
+     +----------------  Ver todas las transacciones (GET)  --------------+
+                                                                          |
+                                                  TransaccionServlet (doGet)
+                                                                          |
+                                                TransaccionDAO.consultarTransacciones()
+                                                                          |
+                                                          resultado.jsp (muestra tabla)
+```
 
-webapp/formulario.html     -> formulario para registrar (POST)
-webapp/resultado.jsp       -> JSP que muestra el listado (GET)
-webapp/error.jsp           -> JSP de error
+## Estructura del proyecto
+
+```
+src/com/midinero/conexion  -> ConexionBD.java         (reutilizado de EV01, sin cambios)
+src/com/midinero/modelo    -> Transaccion.java        (reutilizado de EV01, sin cambios)
+src/com/midinero/dao       -> TransaccionDAO.java     (reutilizado de EV01, sin cambios)
+src/com/midinero/servlet   -> TransaccionServlet.java (NUEVO: capa web con doGet/doPost)
+
+webapp/formulario.html     -> formulario HTML (method="post")
+webapp/resultado.jsp       -> JSP que renderiza el listado (llamado por GET)
+webapp/error.jsp           -> JSP de manejo de errores
 webapp/index.html          -> redirige al formulario
-webapp/WEB-INF/classes/    -> aquí van los .class compilados
-webapp/WEB-INF/lib/        -> aquí va el driver mysql-connector-j.jar
+webapp/WEB-INF/classes/    -> clases .java ya compiladas, listas para desplegar
+webapp/WEB-INF/lib/        -> driver JDBC (mysql-connector-j) usado en tiempo de ejecución
 ```
 
-## Requisitos
+## Estándares de codificación aplicados
 
-- JDK 17+ (ya lo tienes de EV01)
-- Apache Tomcat 9 instalado (puerto 8080)
-- Driver JDBC `mysql-connector-j-x.x.x.jar` (el mismo de EV01)
-- Base de datos `midinero_db` con la tabla `transacciones` (la misma de EV01)
+- **Variables**: camelCase (`nombreTransaccion`, `precioTotal`, etc.)
+- **Métodos**: camelCase con verbo (`insertarTransaccion`, `consultarTransacciones`)
+- **Clases**: PascalCase (`TransaccionServlet`, `TransaccionDAO`, `ConexionBD`)
+- **Paquetes**: minúsculas (`com.midinero.servlet`, `com.midinero.dao`)
 
-## Paso a paso para compilar y desplegar
+## Tecnologías utilizadas
 
-### 1. Copiar el driver JDBC
-Copia tu archivo `mysql-connector-j-26.7.0.jar` (el que ya descargaste en EV01)
-dentro de `lib/` (para compilar) **y** dentro de `webapp/WEB-INF/lib/` (para que
-Tomcat lo tenga disponible en tiempo de ejecución).
+- Java 25 (JDK)
+- Apache Tomcat 9 (contenedor de Servlets)
+- Servlets (`javax.servlet`) y JSP
+- JDBC con MySQL (mysql-connector-j)
+- MySQL / XAMPP
+- Git y GitHub
 
-### 2. Compilar los archivos Java
-Necesitas el `servlet-api.jar` de tu instalación de Tomcat para compilar el
-Servlet. Normalmente está en:
-```
-C:\Program Files\Apache Software Foundation\Tomcat 9.0\lib\servlet-api.jar
-```
+---
 
-Desde la raíz del proyecto (`midinero-web`), ejecuta:
+## Guía técnica: cómo compilar y desplegar (referencia)
+
+### 1. Base de datos
+Reutiliza la misma base `midinero_db` y tabla `transacciones` creadas en EV01.
+
+### 2. Compilar
+Se necesita el `servlet-api.jar` de la instalación de Tomcat 9 además del driver JDBC:
 ```
 javac -d webapp/WEB-INF/classes -cp "lib/mysql-connector-j-26.7.0.jar;C:\Program Files\Apache Software Foundation\Tomcat 9.0\lib\servlet-api.jar" -encoding UTF-8 src/com/midinero/conexion/ConexionBD.java src/com/midinero/modelo/Transaccion.java src/com/midinero/dao/TransaccionDAO.java src/com/midinero/servlet/TransaccionServlet.java
 ```
 
-Esto deja los `.class` ya organizados en `webapp/WEB-INF/classes/com/midinero/...`,
-tal como Tomcat los espera.
-
-### 3. Copiar la carpeta al servidor
-Copia toda la carpeta `webapp/` (con su contenido: HTML, JSP, WEB-INF) dentro
-de la carpeta `webapps` de tu instalación de Tomcat, renombrándola a `midinero`:
+### 3. Desplegar
+Copiar la carpeta `webapp/` dentro de `webapps` de Tomcat, renombrándola a `midinero`:
 ```
 C:\Program Files\Apache Software Foundation\Tomcat 9.0\webapps\midinero\
 ```
 
-### 4. Iniciar Tomcat
-Si lo instalaste como servicio de Windows, ya debería estar corriendo. Si no,
-ejecuta `bin\startup.bat` dentro de la carpeta de Tomcat.
-
-### 5. Probar en el navegador
+### 4. Ejecutar
+Con Tomcat corriendo, abrir en el navegador:
 ```
 http://localhost:8080/midinero/formulario.html
 ```
-- Llena el formulario y dale "Registrar transacción" (POST).
-- Deberías caer en la vista de listado (`resultado.jsp`) mostrando la nueva fila.
-- Prueba también entrar directo a `http://localhost:8080/midinero/transacciones` (GET).
 
-## Control de versiones (Git/GitHub)
+## Repositorio
 
-Este proyecto continúa el repositorio de EV01. Haz commits por funcionalidad:
-```bash
-git add src/com/midinero/servlet
-git commit -m "Servlet con doGet y doPost"
-
-git add webapp/formulario.html
-git commit -m "Formulario HTML con method post"
-
-git add webapp/resultado.jsp webapp/error.jsp webapp/index.html
-git commit -m "Paginas JSP para mostrar resultados"
-
-git push
-```
-
-## Checklist de entrega (según la guía EV02)
-
-- [x] Archivos completos del proyecto web
-- [x] Formulario HTML con método POST/GET
-- [x] Servlet con doGet y doPost implementados
-- [x] Páginas JSP mostrando resultados dinámicos
-- [x] Conexión JDBC funcionando desde el Servlet
-- [ ] Archivo con enlace del repositorio GitHub
-- [ ] Nombre del ZIP: NOMBREAPELLIDO_AA2_EV02
+El código completo, con el historial de commits por funcionalidad, está en:
+https://github.com/CrisDuq-dev/midinero-web-ev02
