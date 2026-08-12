@@ -106,7 +106,7 @@ public class TransaccionApiServlet extends HttpServlet {
         String cuerpoJson = leerCuerpoPeticion(request);
 
         try {
-            int id = Integer.parseInt(extraerCampo(cuerpoJson, "id"));
+            int id = Integer.parseInt(extraerCampoNumerico(cuerpoJson, "id"));
             Transaccion transaccionActualizada = convertirJsonATransaccion(cuerpoJson);
             transaccionActualizada.setId(id);
             validarTransaccion(transaccionActualizada);
@@ -223,26 +223,99 @@ public class TransaccionApiServlet extends HttpServlet {
     }
 
     private Transaccion convertirJsonATransaccion(String json) {
-        String tipo = extraerCampo(json, "tipo");
-        double monto = Double.parseDouble(extraerCampo(json, "monto"));
-        LocalDate fecha = LocalDate.parse(extraerCampo(json, "fecha"));
-        String descripcion = extraerCampo(json, "descripcion");
-        String categoria = extraerCampo(json, "categoria");
+        String tipo = extraerCampoTexto(json, "tipo");
+        double monto = Double.parseDouble(extraerCampoNumerico(json, "monto"));
+        LocalDate fecha = LocalDate.parse(extraerCampoTexto(json, "fecha"));
+        String descripcion = extraerCampoTexto(json, "descripcion");
+        String categoria = extraerCampoTexto(json, "categoria");
 
         return new Transaccion(tipo, monto, fecha, descripcion, categoria);
     }
 
-    private String extraerCampo(String json, String nombreCampo) {
-        Pattern patron = Pattern.compile("\"" + nombreCampo + "\"\\s*:\\s*\"?([^\",}]+)\"?");
-        Matcher coincidencia = patron.matcher(json);
-        if (coincidencia.find()) {
-            return coincidencia.group(1).trim();
+    /**
+     * Extrae el valor de texto de un campo JSON, respetando comillas y
+     * barras invertidas escapadas dentro del propio texto (por ejemplo,
+     * una descripción que contiene comillas: "tienda \"El Ahorro\"").
+     * A diferencia de una simple expresión regular, este método recorre
+     * carácter por carácter para no cortar el valor en la primera comilla
+     * que encuentre.
+     */
+    private String extraerCampoTexto(String json, String nombreCampo) {
+        String buscar = "\"" + nombreCampo + "\"";
+        int inicioClave = json.indexOf(buscar);
+        if (inicioClave == -1) {
+            throw new IllegalArgumentException("Falta el campo: " + nombreCampo);
         }
-        throw new IllegalArgumentException("Falta el campo: " + nombreCampo);
+
+        int posDosPuntos = json.indexOf(':', inicioClave + buscar.length());
+        int i = posDosPuntos + 1;
+        while (i < json.length() && Character.isWhitespace(json.charAt(i))) {
+            i++;
+        }
+        if (i >= json.length() || json.charAt(i) != '"') {
+            throw new IllegalArgumentException("El campo " + nombreCampo + " debe ser texto");
+        }
+        i++; // saltar la comilla de apertura
+
+        StringBuilder valor = new StringBuilder();
+        while (i < json.length()) {
+            char actual = json.charAt(i);
+            if (actual == '\\' && i + 1 < json.length()) {
+                char siguiente = json.charAt(i + 1);
+                switch (siguiente) {
+                    case '"': valor.append('"'); break;
+                    case '\\': valor.append('\\'); break;
+                    case 'n': valor.append('\n'); break;
+                    case 'r': valor.append('\r'); break;
+                    case 't': valor.append('\t'); break;
+                    default: valor.append(siguiente);
+                }
+                i += 2;
+            } else if (actual == '"') {
+                break; // fin real del valor
+            } else {
+                valor.append(actual);
+                i++;
+            }
+        }
+        return valor.toString();
     }
 
+    /**
+     * Extrae el valor de un campo numérico (sin comillas), como monto o id.
+     */
+    private String extraerCampoNumerico(String json, String nombreCampo) {
+        String buscar = "\"" + nombreCampo + "\"";
+        int inicioClave = json.indexOf(buscar);
+        if (inicioClave == -1) {
+            throw new IllegalArgumentException("Falta el campo: " + nombreCampo);
+        }
+
+        int posDosPuntos = json.indexOf(':', inicioClave + buscar.length());
+        int i = posDosPuntos + 1;
+        while (i < json.length() && Character.isWhitespace(json.charAt(i))) {
+            i++;
+        }
+        int inicioValor = i;
+        while (i < json.length() && json.charAt(i) != ',' && json.charAt(i) != '}') {
+            i++;
+        }
+        return json.substring(inicioValor, i).trim();
+    }
+
+    /**
+     * Escapa los caracteres especiales para que el texto sea válido dentro
+     * de un JSON, incluso si el usuario ingresó comillas, barras invertidas,
+     * saltos de línea o etiquetas tipo <script> en los campos de texto
+     * (ver prueba de validación V5).
+     */
     private String escaparJson(String texto) {
         if (texto == null) return "";
-        return texto.replace("\"", "\\\"");
+        return texto
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }
